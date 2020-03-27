@@ -6,6 +6,7 @@ import numpy as np
 import time
 import os
 import cv2
+from subprocess import Popen
 
 from fastspeech import FastSpeech
 from text import text_to_sequence
@@ -18,15 +19,14 @@ import waveglow
 import soundfile as sf
 import pyworld as pw
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# device=''
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device='cpu'
 
-def get_FastSpeech(num):
-    checkpoint = torch.load(os.path.join(
-            hp.checkpoint_path, 'checkpoint_01400000.pth'))
-    model = nn.DataParallel(FastSpeech())
+def get_FastSpeech():
+    checkpoint = torch.load('checkpoint.pth')
+    model = FastSpeech()
     model = model.to(device)
-    model.load_state_dict(checkpoint['model'])
+    model.load_state_dict(checkpoint)
     model.eval()
     return model
 
@@ -58,25 +58,19 @@ def synthesis(model, condition1, condition2, D, alpha=1.0):
 
 if __name__ == "__main__":
     
-    # Test
-    checkpoint_in=open(os.path.join(hp.checkpoint_path, 'checkpoint.txt'),'r')
-    num=int(checkpoint_in.readline().strip())
-    checkpoint_in.close()
+    # # Test
+    # checkpoint_in=open(os.path.join(hp.checkpoint_path, 'checkpoint.txt'),'r')
+    # num=int(checkpoint_in.readline().strip())
+    # checkpoint_in.close()
     alpha = 1.0
-    model = get_FastSpeech(num)
+    model = get_FastSpeech()
 #     condition1=np.load("./data/con1s/000300.npy")
 #     condition2=np.load("./data/con2s/000300.npy")
 #     D=np.load("./data/alignments/000300.npy")
     
     n=len(os.listdir('./tmp/con1s'))
     
-    os.chdir('../FastSinging_') 
-    os.system('rm ./tmp/con1s/*')
-    os.system('rm ./tmp/con2s/*')
-    os.system('rm ./tmp/Ds/*')
-    os.system('rm ./tmp/mel/*')
-    os.chdir('../FastSinging') 
-    
+
     for index in tqdm(range(n)):
         condition1=np.load("./tmp/con1s/%03d.npy"%index)
         condition2=np.load("./tmp/con2s/%03d.npy"%index)
@@ -97,26 +91,27 @@ if __name__ == "__main__":
     #     ap=np.zeros((mel.shape[0],1025)).astype(np.float64)
     #     ap.fill(0.1)
 
-        os.chdir('../FastSinging_') 
+        os.chdir('../f0_net') 
         np.save("./tmp/con1s/%03d.npy"%index,condition1)
         np.save("./tmp/con2s/%03d.npy"%index,condition2)
         np.save("./tmp/Ds/%03d.npy"%index,D)
         np.save("./tmp/mels/%03d.npy"%index,mel)
-        os.chdir('../FastSinging')
+        os.chdir('../mel_net')
 
         
-    os.chdir('../FastSinging_')        
-    os.system('CUDA_VISIBLE_DEVICES=1 python3 synthesis.py')
-    os.chdir('../FastSinging') 
+    os.chdir('../f0_net')        
+    p = Popen('python synthesis.py')
+    p.wait()
+    os.chdir('../mel_net') 
 
     wav=np.zeros(1)
 
     for index in tqdm(range(n)):
-        f0=np.load('../FastSinging_/tmp/f0s/%03d.npy'%index).astype(np.float64)
+        f0=np.load('../f0_net/tmp/f0s/%03d.npy'%index).astype(np.float64)
         f0=f0/5.0+40.0
         f0=440.0*2**((f0-69)/12)
 
-        mel=np.load("../FastSinging_/tmp/mels/%03d.npy"%index)
+        mel=np.load("../f0_net/tmp/mels/%03d.npy"%index)
         arr1=[]
         for i in range(mel.shape[0]):
             arr1.append(np.interp(np.arange(1025),
@@ -147,9 +142,12 @@ if __name__ == "__main__":
         y = pw.synthesize(f0, sp, ap, 32000, 8.0)
         wav=np.append(wav,y)
 
-    os.chdir('../FastSinging')
+    
+
+    os.chdir('../')
     current_time = time.strftime("%Y_%m_%d_%H_%M", time.localtime())
     sf.write('out/out_total_%s.wav'%current_time,wav, 32000)
+
     # Audio.tools.inv_mel_spec(mel_postnet, os.path.join(
         # "results", str(num) + "_griffin_lim.wav"))
 

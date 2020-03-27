@@ -127,3 +127,17 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+out/*
+
+f0_net/tmp/con1s/*
+f0_net/tmp/con2s/*
+f0_net/tmp/Ds/*
+f0_net/tmp/f0s/*
+f0_net/tmp/mels/*
+
+mel_net/tmp/con1s/*
+mel_net/tmp/con2s/*
+mel_net/tmp/Ds/*
+
+checkpoint*

@@ -7,17 +7,12 @@ from tqdm import tqdm
 import soundfile as sf
 from parsevsqx import vsqx2notes
 import random
+import shutil
+from subprocess import Popen
 
 dict_size=437
 fs = 32000
-n=49
-wav_path="D:\wav"
-tg_path="./data/TextGrid"
 dict_path="./pinyin.txt"
-mel_ground_truth = "./data/mels"
-condition1='./data/con1s'
-condition2='./data/con2s'
-alignment_path = "./data/alignments"
 
 pinyin={}
 def prepare_dict():
@@ -144,13 +139,28 @@ con1s.append(con1)
 con2s.append(con2)
 Ds.append(D)
 
-os.system('rm ./tmp/con1s/*')
-os.system('rm ./tmp/con2s/*')
-os.system('rm ./tmp/Ds/*')
+os.chdir('./f0_net') 
+shutil.rmtree('tmp')
+os.mkdir('tmp')
+os.mkdir('tmp/con1s')
+os.mkdir('tmp/con2s')
+os.mkdir('tmp/Ds')
+os.mkdir('tmp/mels')
+os.mkdir('tmp/f0s')
+
+os.chdir('../mel_net')
+shutil.rmtree('tmp')
+os.mkdir('tmp')
+os.mkdir('tmp/con1s')
+os.mkdir('tmp/con2s')
+os.mkdir('tmp/Ds')
+
 
 for i in range(len(con1s)):
     np.save('./tmp/con1s/%03d.npy'%i,con1s[i])
     np.save('./tmp/con2s/%03d.npy'%i,con2s[i])
     np.save('./tmp/Ds/%03d.npy'%i,Ds[i])
    
-os.system('CUDA_VISIBLE_DEVICES=1 python3 synthesis.py')
+
+p = Popen('python synthesis.py')
+p.wait()

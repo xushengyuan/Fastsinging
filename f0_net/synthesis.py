@@ -16,15 +16,14 @@ import Audio
 import glow
 import waveglow
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# device='cpu'
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device='cpu'
 
-def get_FastSpeech(num):
-    num=50000
-    checkpoint_path = "checkpoint_%08d.pth"%num
+def get_FastSpeech():
+    checkpoint_path = "checkpoint.pth"
     model = FastSpeech().to(device)
-    model.load_state_dict(torch.load(os.path.join(
-        hp.checkpoint_path, checkpoint_path),map_location=torch.device(device))['model'])
+    model = model.to(device)
+    model.load_state_dict(torch.load(checkpoint_path))
     model.eval()
 
     return model
@@ -57,18 +56,17 @@ def synthesis(model, condition1, condition2,mel_in, D, alpha=1.0):
 if __name__ == "__main__":
     
     # Test
-    checkpoint_in=open(os.path.join(hp.checkpoint_path, 'checkpoint.txt'),'r')
-    num=int(checkpoint_in.readline().strip())
-    checkpoint_in.close()
+    # checkpoint_in=open(os.path.join(hp.checkpoint_path, 'checkpoint.txt'),'r')
+    # num=int(checkpoint_in.readline().strip())
+    # checkpoint_in.close()
     alpha = 1.0
-    model = get_FastSpeech(num)
+    model = get_FastSpeech()
     # condition1=np.load("/data/con1s/001300.npy")
     # condition2=np.load("/data/con2s/001300.npy")
     # D=np.load("/data/alignments/001300.npy")
     
     n=len(os.listdir('./tmp/con1s'))
     
-    os.system('rm ./tmp/f0s/*')
     for i in tqdm(range(n)):
         condition1=np.load("./tmp/con1s/%03d.npy"%i)
         condition2=np.load("./tmp/con2s/%03d.npy"%i)
